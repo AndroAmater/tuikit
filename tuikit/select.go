@@ -6,35 +6,10 @@ import (
 
 type Select struct {
 	Element
-	choices      []string
-	selected     []bool
-	width        int
-	height       int
-	indicators   [4]string
-	screen       *Screen
-	y            int
-	x            int
-	growX        bool
-	growY        bool
-	eventHandler func(event tcell.Event)
-	cursor       int
-}
-
-func NewSelect(choices []string, selected []bool) *Select {
-	return &Select{
-		choices:      choices,
-		selected:     selected,
-		width:        0,
-		height:       len(choices),
-		indicators:   [4]string{"[ ] ", "[*] ", "> ", "  "},
-		screen:       nil,
-		y:            0,
-		x:            0,
-		growX:        true,
-		growY:        false,
-		eventHandler: func(event tcell.Event) {},
-		cursor:       0,
-	}
+	choices    []string
+	selected   []bool
+	indicators [4]string
+	cursor     int
 }
 
 func (s *Select) Draw() {
@@ -61,18 +36,6 @@ func (s *Select) Draw() {
 	}
 }
 
-func (s *Select) setScreen(screen *Screen) {
-	s.screen = screen
-	if s.growX {
-		width, _ := screen.Screen.Size()
-		s.width = width
-	}
-	if s.growY {
-		_, height := screen.Screen.Size()
-		s.height = height
-	}
-}
-
 func (s *Select) HandleEvent(event tcell.Event) {
 	switch ev := event.(type) {
 	case *tcell.EventKey:
@@ -92,4 +55,14 @@ func (s *Select) HandleEvent(event tcell.Event) {
 		}
 	}
 	s.eventHandler(event)
+}
+
+func NewSelect(choices []string) *Select {
+	return &Select{
+		Element:    *NewElement(),
+		choices:    choices,
+		selected:   make([]bool, len(choices)),
+		indicators: [4]string{"[ ] ", "[*] ", "> ", "  "},
+		cursor:     0,
+	}
 }

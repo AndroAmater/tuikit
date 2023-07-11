@@ -6,13 +6,7 @@ import (
 
 type Window struct {
 	Container
-	elements []Element
-	width    int
-	height   int
-	x        int
-	y        int
-	growX    bool
-	growY    bool
+	hasBorder bool
 }
 
 func (w *Window) Draw() {
@@ -25,6 +19,9 @@ func (w *Window) Draw() {
 	for r := 0; r < w.height; r++ {
 		x := w.x
 		for c := 0; c < w.width; c++ {
+			if !w.hasBorder {
+				continue
+			}
 			char := ' ' // default character is a space
 			if r == 0 { // top border
 				if c == 0 {
@@ -52,28 +49,8 @@ func (w *Window) Draw() {
 	}
 }
 
-func (w *Window) SetScreen(screen *Screen) {
-	w.SetScreen(screen)
-}
-
-func (w *Window) HandleEvent(event tcell.Event) {
-	for _, element := range w.elements {
-		element.HandleEvent(event)
-	}
-}
-
-func (w *Window) AddElement(element Element) {
-	w.elements = append(w.elements, element)
-}
-
-func NewWindow(x int, y int, width int, height int, growX bool, growY bool) *Window {
+func NewWindow() *Window {
 	return &Window{
 		Container: *NewContainer(),
-		x:         x,
-		y:         y,
-		width:     width,
-		height:    height,
-		growX:     growX,
-		growY:     growY,
 	}
 }

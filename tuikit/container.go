@@ -1,10 +1,13 @@
 package tuikit
 
+import "github.com/gdamore/tcell/v2"
+
 type Container struct {
 	Element
-	ContainsElements
 	elements []IsElement
 }
+
+// ContainsElements interface
 
 func (c *Container) AddElement(e IsElement) {
 	c.elements = append(c.elements, e)
@@ -22,8 +25,26 @@ func (c *Container) DrawChildren() {
 	}
 }
 
+// HandlesEvents interface
+
+func (c *Container) HandleEvent(event tcell.Event) {
+	for _, e := range c.elements {
+		e.HandleEvent(event)
+	}
+	c.eventHandler(event)
+}
+
+// Other methods
+
 func NewContainer() *Container {
 	return &Container{
 		elements: make([]IsElement, 0),
 	}
 }
+
+// Validate interface implementations
+
+var (
+	_ ContainsElements = &Container{}
+	_ IsElement        = &Container{}
+)
