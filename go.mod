@@ -1,4 +1,4 @@
-module mtd-staging-migrator
+module tuikit
 
 go 1.20
 
