@@ -177,16 +177,35 @@ func (w *Window) Draw() {
 	}
 	borderStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
 
-	for y := 1; y <= w.GetOuterHeight(); y++ {
-		for x := 1; x <= w.GetOuterWidth(); x++ {
-			w.GetScreen().Screen.SetContent(
-				x-1,
-				y-1,
-				PixelRuneMap[getPositionPixelType(w, x, y)],
-				nil,
-				borderStyle,
-			)
+	type pixel struct {
+		x         int
+		y         int
+		pixelType PixelTypeType
+	}
+	ch := make(chan pixel)
+	getRune := func(w *Window, x int, y int) {
+		ch <- pixel{
+			x:         x,
+			y:         y,
+			pixelType: getPositionPixelType(w, x, y),
 		}
+	}
+	runes := make([][]rune, w.GetOuterHeight())
+	for y := 1; y <= w.GetOuterHeight(); y++ {
+		runes = append(runes, make([]rune, w.GetOuterWidth()))
+		for x := 1; x <= w.GetOuterWidth(); x++ {
+			go getRune(w, x, y)
+		}
+	}
+	for i := 0; i < w.GetOuterHeight()*w.GetOuterWidth(); i++ {
+		p := <-ch
+		w.GetScreen().Screen.SetContent(
+			p.x,
+			p.y,
+			PixelRuneMap[p.pixelType],
+			nil,
+			borderStyle,
+		)
 	}
 }
 
