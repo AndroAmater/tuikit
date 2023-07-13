@@ -107,7 +107,7 @@ func (e *Element) GetInnerWidth() int {
 	if e.GetBorderRight().Style == BorderStyle.Single {
 		rightBorderWidth = 1
 	}
-	return e.width -
+	return e.GetWidth() -
 		e.GetPaddingLeft() -
 		e.GetPaddingRight() -
 		leftBorderWidth -
@@ -122,7 +122,7 @@ func (e *Element) GetInnerHeight() int {
 	if e.GetBorderBottom().Style == BorderStyle.Single {
 		bottomBorderHeight = 1
 	}
-	return e.height -
+	return e.GetHeight() -
 		e.GetPaddingTop() -
 		e.GetPaddingBottom() -
 		topBorderHeight -
@@ -133,10 +133,12 @@ func (e *Element) GetInnerSize() (int, int) {
 	return e.GetInnerWidth(), e.GetInnerHeight()
 }
 
+// TODO: Implement content size calculation
 func (e *Element) GetWidth() int {
 	return e.width
 }
 
+// TODO: Implement content size calculation
 func (e *Element) GetHeight() int {
 	return e.height
 }

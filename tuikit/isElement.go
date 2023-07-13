@@ -2,9 +2,10 @@ package tuikit
 
 type IsElement interface {
 	HandlesEvents
-	HasScreen
 	HasContainer
-	HasSize
 	HasPosition
+	HasScreen
+	HasSize
+	// Draws the element to the screen
 	Draw()
 }
