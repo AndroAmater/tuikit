@@ -276,6 +276,7 @@ func (e *Element) GetY() int {
 	return e.y
 }
 
+// TODO: Take align and justify into account
 func (e *Element) GetAbsoluteX() int {
 	if e.GetContainer() == nil {
 		return e.GetX()
@@ -298,6 +299,7 @@ func (e *Element) GetAbsoluteX() int {
 		offset
 }
 
+// TODO: Take align and justify into account
 func (e *Element) GetAbsoluteY() int {
 	if e.GetContainer() == nil {
 		return e.GetY()
