@@ -58,7 +58,6 @@ var PixelRuneMap = map[PixelTypeType]rune{
 	PixelType.Content:           'C',
 }
 
-// FIXME: Padding is not handled correctly
 func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
 	// Margin
 	if y <= e.GetMarginTop() {
@@ -138,13 +137,13 @@ func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
 		bottomBorderWidth = 1
 	}
 	if y > e.GetMarginTop()+topBorderWidth &&
-		y < e.GetMarginTop()+topBorderWidth+e.GetPaddingTop() {
+		y <= e.GetMarginTop()+topBorderWidth+e.GetPaddingTop() {
 		if e.GetPaddingTop() > 0 {
 			return PixelType.Padding
 		}
 	}
-	if x > e.GetMarginTop()+e.GetWidth()-bottomBorderWidth-e.GetPaddingBottom() &&
-		x <= e.GetMarginTop()+e.GetWidth()-bottomBorderWidth {
+	if y > e.GetMarginTop()+e.GetHeight()-bottomBorderWidth-e.GetPaddingBottom() &&
+		y <= e.GetMarginTop()+e.GetHeight()-bottomBorderWidth {
 		if e.GetPaddingBottom() > 0 {
 			return PixelType.Padding
 		}
