@@ -2,7 +2,7 @@ package tuikit
 
 type HasContainer interface {
 	// Sets the element's container
-	setContainer(c ContainsElements)
+	setContainer(c IsElement)
 	// Gets the element's container
-	GetContainer() ContainsElements
+	GetContainer() IsElement
 }

@@ -116,6 +116,8 @@ type HasSize interface {
 	GetBorderRight() BorderOpts
 	// Gets the element's border styles and colors (top, right, bottom, left)
 	GetBorder() (BorderOpts, BorderOpts, BorderOpts, BorderOpts)
+	// Gets the element's border sizes (top, right, bottom, left)
+	GetBorderWidth() (int, int, int, int)
 	// Sets the element's top border style and color
 	SetBorderTop(BorderStyleType, string)
 	// Sets the element's bottom border style and color
@@ -126,4 +128,6 @@ type HasSize interface {
 	SetBorderRight(BorderStyleType, string)
 	// Sets the element's border styles and colors (top, right, bottom, left)
 	SetBorder(BorderOpts, BorderOpts, BorderOpts, BorderOpts)
+	// Sets the element's border styles and colors
+	SetFullBorder(BorderStyleType, string)
 }

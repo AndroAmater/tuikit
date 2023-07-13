@@ -6,6 +6,7 @@ type IsElement interface {
 	HasPosition
 	HasScreen
 	HasSize
+	ContainsElements
 	// Draws the element to the screen
 	Draw()
 }

@@ -1,6 +1,8 @@
 package tuikit
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"github.com/gdamore/tcell/v2"
+)
 
 type PixelTypeType int
 
@@ -56,6 +58,40 @@ var PixelRuneMap = map[PixelTypeType]rune{
 	PixelType.BottomBorder:      '─',
 	PixelType.BottomRightBorder: '┘',
 	PixelType.Content:           'C',
+}
+
+type Element struct {
+	container    IsElement
+	elements     []IsElement
+	eventHandler func(event tcell.Event)
+	screen       *Screen
+	y            int
+	x            int
+	growX        bool
+	growY        bool
+	width        int
+	height       int
+	margin       struct {
+		Top    int
+		Right  int
+		Bottom int
+		Left   int
+	}
+	padding struct {
+		Top    int
+		Right  int
+		Bottom int
+		Left   int
+	}
+	border struct {
+		Top    BorderOpts
+		Right  BorderOpts
+		Bottom BorderOpts
+		Left   BorderOpts
+	}
+	contentDirection ContainerDirectionType
+	contentAlign     ContainerAlignType
+	contentJustify   ContainerJustifyType
 }
 
 func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
@@ -164,42 +200,11 @@ func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
 	return PixelType.Content
 }
 
-type Element struct {
-	container    ContainsElements
-	elements     []IsElement
-	eventHandler func(event tcell.Event)
-	screen       *Screen
-	y            int
-	x            int
-	growX        bool
-	growY        bool
-	width        int
-	height       int
-	margin       struct {
-		Top    int
-		Right  int
-		Bottom int
-		Left   int
-	}
-	padding struct {
-		Top    int
-		Right  int
-		Bottom int
-		Left   int
-	}
-	border struct {
-		Top    BorderOpts
-		Right  BorderOpts
-		Bottom BorderOpts
-		Left   BorderOpts
-	}
-}
-
 // IsElement interface
 
 func (e *Element) Draw() {
 	if e.GetScreen() == nil {
-		panic("Select's Screen is not defined")
+		panic("Element's Screen is not defined")
 	}
 	borderStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
 
@@ -224,13 +229,14 @@ func (e *Element) Draw() {
 	for i := 0; i < e.GetOuterHeight()*e.GetOuterWidth(); i++ {
 		p := <-ch
 		e.GetScreen().Screen.SetContent(
-			p.x,
-			p.y,
+			p.x+e.GetAbsoluteX(),
+			p.y+e.GetAbsoluteY(),
 			PixelRuneMap[p.pixelType],
 			nil,
 			borderStyle,
 		)
 	}
+	e.DrawChildren()
 }
 
 // HandlesEvents interface
@@ -252,11 +258,11 @@ func (e *Element) GetEventHandler() func(event tcell.Event) {
 
 // HasContainer interface
 
-func (e *Element) setContainer(c ContainsElements) {
+func (e *Element) setContainer(c IsElement) {
 	e.container = c
 }
 
-func (e *Element) GetContainer() ContainsElements {
+func (e *Element) GetContainer() IsElement {
 	return e.container
 }
 
@@ -266,20 +272,68 @@ func (e *Element) GetX() int {
 	return e.x
 }
 
-func (e *Element) SetX(x int) {
-	e.x = x
-}
-
 func (e *Element) GetY() int {
 	return e.y
 }
 
-func (e *Element) SetY(y int) {
-	e.y = y
+func (e *Element) GetAbsoluteX() int {
+	if e.GetContainer() == nil {
+		return e.GetX()
+	}
+	_, _, _, leftBorderWidth := e.GetContainer().GetBorderWidth()
+	offset := 0
+	if e.GetContainer().GetContentDirection() == ContainerDirection.Row {
+		for _, child := range e.GetContainer().GetChildren() {
+			if child == e {
+				break
+			}
+			offset += child.GetOuterWidth()
+		}
+	}
+	return e.GetX() +
+		e.GetContainer().GetAbsoluteX() +
+		e.GetContainer().GetMarginLeft() +
+		e.GetContainer().GetPaddingLeft() +
+		leftBorderWidth +
+		offset
+}
+
+func (e *Element) GetAbsoluteY() int {
+	if e.GetContainer() == nil {
+		return e.GetY()
+	}
+	topBorderWidth, _, _, _ := e.GetContainer().GetBorderWidth()
+	offset := 0
+	if e.GetContainer().GetContentDirection() == ContainerDirection.Column {
+		for _, child := range e.GetContainer().GetChildren() {
+			if child == e {
+				break
+			}
+			offset += child.GetOuterHeight()
+		}
+	}
+	return e.GetY() +
+		e.GetContainer().GetAbsoluteY() +
+		e.GetContainer().GetMarginTop() +
+		e.GetContainer().GetPaddingTop() +
+		topBorderWidth +
+		offset
 }
 
 func (e *Element) GetPosition() (int, int) {
 	return e.GetX(), e.GetY()
+}
+
+func (e *Element) GetAbsolutePosition() (int, int) {
+	return e.GetAbsoluteX(), e.GetAbsoluteY()
+}
+
+func (e *Element) SetX(x int) {
+	e.x = x
+}
+
+func (e *Element) SetY(y int) {
+	e.y = y
 }
 
 func (e *Element) SetPosition(x int, y int) {
@@ -294,19 +348,16 @@ func (e *Element) setScreen(s *Screen) {
 }
 
 func (e *Element) GetScreen() *Screen {
-	return e.screen
+	if e.screen != nil {
+		return e.screen
+	}
+	return e.GetContainer().GetScreen()
 }
 
 // HasSize interface
 
 func (e *Element) GetInnerWidth() int {
-	var leftBorderWidth, rightBorderWidth int
-	if e.GetBorderLeft().Style == BorderStyle.Single {
-		leftBorderWidth = 1
-	}
-	if e.GetBorderRight().Style == BorderStyle.Single {
-		rightBorderWidth = 1
-	}
+	_, rightBorderWidth, _, leftBorderWidth := e.GetBorderWidth()
 	return e.GetWidth() -
 		e.GetPaddingLeft() -
 		e.GetPaddingRight() -
@@ -315,13 +366,7 @@ func (e *Element) GetInnerWidth() int {
 }
 
 func (e *Element) GetInnerHeight() int {
-	var topBorderHeight, bottomBorderHeight int
-	if e.GetBorderTop().Style == BorderStyle.Single {
-		topBorderHeight = 1
-	}
-	if e.GetBorderBottom().Style == BorderStyle.Single {
-		bottomBorderHeight = 1
-	}
+	topBorderHeight, _, bottomBorderHeight, _ := e.GetBorderWidth()
 	return e.GetHeight() -
 		e.GetPaddingTop() -
 		e.GetPaddingBottom() -
@@ -333,13 +378,75 @@ func (e *Element) GetInnerSize() (int, int) {
 	return e.GetInnerWidth(), e.GetInnerHeight()
 }
 
-// TODO: Implement content size calculation
 func (e *Element) GetWidth() int {
+	if e.growX {
+		if e.GetContainer() != nil {
+			width := e.GetContainer().GetInnerWidth() -
+				e.GetMarginLeft() -
+				e.GetMarginRight()
+			if e.GetContainer().GetContentDirection() == ContainerDirection.Row {
+				reservedWidth := 0
+				for _, child := range e.GetContainer().GetXNonGrowableChildren() {
+					if child == e {
+						continue
+					}
+					reservedWidth += child.GetOuterWidth()
+				}
+				for _, child := range e.GetContainer().GetXGrowableChildren() {
+					if child == e {
+						continue
+					}
+					reservedWidth += child.GetMarginRight()
+					reservedWidth += child.GetMarginLeft()
+				}
+				return (width - reservedWidth) /
+					len(e.GetContainer().GetXGrowableChildren())
+			}
+			return width
+		}
+		if e.GetScreen() == nil {
+			panic("Element's screen is not defined")
+		}
+		return e.GetScreen().GetWidth() -
+			e.GetMarginLeft() -
+			e.GetMarginRight()
+	}
 	return e.width
 }
 
-// TODO: Implement content size calculation
 func (e *Element) GetHeight() int {
+	if e.growY {
+		if e.GetContainer() != nil {
+			height := e.GetContainer().GetInnerHeight() -
+				e.GetMarginTop() -
+				e.GetMarginBottom()
+			if e.GetContainer().GetContentDirection() == ContainerDirection.Column {
+				reservedHeight := 0
+				for _, child := range e.GetContainer().GetYNonGrowableChildren() {
+					if child == e {
+						continue
+					}
+					reservedHeight += child.GetOuterHeight()
+				}
+				for _, child := range e.GetContainer().GetYGrowableChildren() {
+					if child == e {
+						continue
+					}
+					reservedHeight += child.GetMarginTop()
+					reservedHeight += child.GetMarginBottom()
+				}
+				return (height - reservedHeight) /
+					len(e.GetContainer().GetYGrowableChildren())
+			}
+			return height
+		}
+		if e.GetScreen() == nil {
+			panic("Element's screen is not defined")
+		}
+		return e.GetScreen().GetHeight() -
+			e.GetMarginTop() -
+			e.GetMarginBottom()
+	}
 	return e.height
 }
 
@@ -527,6 +634,26 @@ func (e *Element) GetBorder() (
 		e.GetBorderLeft()
 }
 
+func (e *Element) GetBorderWidth() (int, int, int, int) {
+	var leftBorderWidth, rightBorderWidth, topBorderHeight, bottomBorderHeight int
+	if e.GetBorderLeft().Style == BorderStyle.Single {
+		leftBorderWidth = 1
+	}
+	if e.GetBorderRight().Style == BorderStyle.Single {
+		rightBorderWidth = 1
+	}
+	if e.GetBorderTop().Style == BorderStyle.Single {
+		topBorderHeight = 1
+	}
+	if e.GetBorderBottom().Style == BorderStyle.Single {
+		bottomBorderHeight = 1
+	}
+	return topBorderHeight,
+		rightBorderWidth,
+		bottomBorderHeight,
+		leftBorderWidth
+}
+
 func (e *Element) SetBorderTop(style BorderStyleType, color string) {
 	e.border.Top = BorderOpts{
 		Style: style,
@@ -567,15 +694,21 @@ func (e *Element) SetBorder(
 	e.SetBorderLeft(borderTop.Style, borderTop.Color)
 }
 
-// ContainsElements interface
-
-func (e *Element) AddElement(el IsElement) {
-	e.elements = append(e.elements, el)
-	el.setContainer(e)
-	el.setScreen(e.GetScreen())
+func (e *Element) SetFullBorder(style BorderStyleType, color string) {
+	e.SetBorderTop(style, color)
+	e.SetBorderRight(style, color)
+	e.SetBorderBottom(style, color)
+	e.SetBorderLeft(style, color)
 }
 
-func (e *Element) GetElements() []IsElement {
+// ContainsElements interface
+
+func (e *Element) AddChild(el IsElement) {
+	e.elements = append(e.elements, el)
+	el.setContainer(e)
+}
+
+func (e *Element) GetChildren() []IsElement {
 	return e.elements
 }
 
@@ -583,6 +716,70 @@ func (e *Element) DrawChildren() {
 	for _, el := range e.elements {
 		el.Draw()
 	}
+}
+
+func (e *Element) GetContentDirection() ContainerDirectionType {
+	return e.contentDirection
+}
+
+func (e *Element) GetContentAlign() ContainerAlignType {
+	return e.contentAlign
+}
+
+func (e *Element) GetContentJustify() ContainerJustifyType {
+	return e.contentJustify
+}
+
+func (e *Element) SetContentDirection(direction ContainerDirectionType) {
+	e.contentDirection = direction
+}
+
+func (e *Element) SetContentAlign(align ContainerAlignType) {
+	e.contentAlign = align
+}
+
+func (e *Element) SetContentJustify(justify ContainerJustifyType) {
+	e.contentJustify = justify
+}
+
+func (e *Element) GetXGrowableChildren() []IsElement {
+	var growable []IsElement
+	for _, el := range e.GetChildren() {
+		if el.GetGrowX() == true {
+			growable = append(growable, el)
+		}
+	}
+	return growable
+}
+
+func (e *Element) GetYGrowableChildren() []IsElement {
+	var growable []IsElement
+	for _, el := range e.GetChildren() {
+		if el.GetGrowY() == true {
+			growable = append(growable, el)
+		}
+	}
+	return growable
+}
+
+func (e *Element) GetXNonGrowableChildren() []IsElement {
+	var growable []IsElement
+	for _, el := range e.GetChildren() {
+		if el.GetGrowX() != true {
+			growable = append(growable, el)
+		}
+	}
+	return growable
+}
+
+func (e *Element) GetYNonGrowableChildren() []IsElement {
+	var growable []IsElement
+	for _, el := range e.GetChildren() {
+		if el.GetGrowY() != true {
+			growable = append(growable, el)
+		}
+	}
+	return growable
 }
 
 // Other methods

@@ -53,13 +53,12 @@ func setScreen(s *Screen) {
 	s.screen = s
 }
 
-func (s *Screen) AddElement(e IsElement) {
+func (s *Screen) AddChild(e IsElement) {
 	s.elements = append(s.elements, e)
-	e.setContainer(s)
 	e.setScreen(s)
 }
 
-func (s *Screen) GetElements() []IsElement {
+func (s *Screen) GetChildren() []IsElement {
 	return s.elements
 }
 
@@ -77,4 +76,20 @@ func (s *Screen) Draw() {
 
 func (s *Screen) Close() {
 	s.Screen.Fini()
+}
+
+func (s *Screen) GetHeight() int {
+	_, height := s.Screen.Size()
+	// FIXME: Why is size always 1 less than the actual size?
+	return height - 1
+}
+
+func (s *Screen) GetWidth() int {
+	width, _ := s.Screen.Size()
+	// FIXME: Why is size always 1 less than the actual size?
+	return width - 1
+}
+
+func (s *Screen) GetSize() (int, int) {
+	return s.GetHeight(), s.GetWidth()
 }
