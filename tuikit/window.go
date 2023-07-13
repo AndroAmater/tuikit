@@ -190,9 +190,7 @@ func (w *Window) Draw() {
 			pixelType: getPositionPixelType(w, x, y),
 		}
 	}
-	runes := make([][]rune, w.GetOuterHeight())
 	for y := 1; y <= w.GetOuterHeight(); y++ {
-		runes = append(runes, make([]rune, w.GetOuterWidth()))
 		for x := 1; x <= w.GetOuterWidth(); x++ {
 			go getRune(w, x, y)
 		}
