@@ -2,8 +2,172 @@ package tuikit
 
 import "github.com/gdamore/tcell/v2"
 
+type PixelTypeType int
+
+const (
+	margin PixelTypeType = iota
+	padding
+	topLeftBorder
+	topBorder
+	topRightBorder
+	leftBorder
+	rightBorder
+	bottomLeftBorder
+	bottomBorder
+	bottomRightBorder
+	content
+)
+
+var PixelType = struct {
+	Margin            PixelTypeType
+	Padding           PixelTypeType
+	TopLeftBorder     PixelTypeType
+	TopBorder         PixelTypeType
+	TopRightBorder    PixelTypeType
+	LeftBorder        PixelTypeType
+	RightBorder       PixelTypeType
+	BottomLeftBorder  PixelTypeType
+	BottomBorder      PixelTypeType
+	BottomRightBorder PixelTypeType
+	Content           PixelTypeType
+}{
+	Margin:            margin,
+	Padding:           padding,
+	TopLeftBorder:     topLeftBorder,
+	TopBorder:         topBorder,
+	TopRightBorder:    topRightBorder,
+	LeftBorder:        leftBorder,
+	RightBorder:       rightBorder,
+	BottomLeftBorder:  bottomLeftBorder,
+	BottomBorder:      bottomBorder,
+	BottomRightBorder: bottomRightBorder,
+	Content:           content,
+}
+
+var PixelRuneMap = map[PixelTypeType]rune{
+	PixelType.Margin:            'M',
+	PixelType.Padding:           'P',
+	PixelType.TopLeftBorder:     '┌',
+	PixelType.TopBorder:         '─',
+	PixelType.TopRightBorder:    '┐',
+	PixelType.LeftBorder:        '│',
+	PixelType.RightBorder:       '│',
+	PixelType.BottomLeftBorder:  '└',
+	PixelType.BottomBorder:      '─',
+	PixelType.BottomRightBorder: '┘',
+	PixelType.Content:           'C',
+}
+
+// FIXME: Padding is not handled correctly
+func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
+	// Margin
+	if y <= e.GetMarginTop() {
+		return PixelType.Margin
+	}
+	if y > e.GetMarginTop()+e.GetHeight() {
+		return PixelType.Margin
+	}
+	if x <= e.GetMarginLeft() {
+		return PixelType.Margin
+	}
+	if x > e.GetMarginLeft()+e.GetWidth() {
+		return PixelType.Margin
+	}
+	// Top border
+	if y == e.GetMarginTop()+1 && e.GetBorderTop().Style != 0 {
+		if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style != 0 {
+			return PixelType.TopLeftBorder
+		} else if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style == 0 {
+			return PixelType.TopBorder
+		} else if x > e.GetMarginLeft()+1 && x < e.GetMarginLeft()+e.GetWidth() {
+			return PixelType.TopBorder
+		} else if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style == 0 {
+			return PixelType.TopBorder
+		} else if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style != 0 {
+			return PixelType.TopRightBorder
+		}
+	} else if y == e.GetMarginTop()+1 && e.GetBorderTop().Style == 0 {
+		if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style != 0 {
+			return PixelType.LeftBorder
+		}
+		if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style != 0 {
+			return PixelType.RightBorder
+		}
+	}
+	// Bottom border
+	if y == e.GetMarginTop()+e.GetHeight() && e.GetBorderBottom().Style != 0 {
+		if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style != 0 {
+			return PixelType.BottomLeftBorder
+		} else if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style == 0 {
+			return PixelType.BottomBorder
+		} else if x > e.GetMarginLeft()+1 && x < e.GetMarginLeft()+e.GetWidth() {
+			return PixelType.BottomBorder
+		} else if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style == 0 {
+			return PixelType.BottomBorder
+		} else if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style != 0 {
+			return PixelType.BottomRightBorder
+		}
+	} else if y == e.GetMarginTop()+e.GetHeight() && e.GetBorderBottom().Style != 1 {
+		if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style != 0 {
+			return PixelType.LeftBorder
+		}
+		if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style != 0 {
+			return PixelType.RightBorder
+		}
+	}
+	if e.GetMarginTop()+1 < y && y < e.GetMarginTop()+e.GetHeight() {
+		if x == e.GetMarginLeft()+1 && e.GetBorderLeft().Style != 0 {
+			return PixelType.LeftBorder
+		}
+		if x == e.GetMarginLeft()+e.GetWidth() && e.GetBorderRight().Style != 0 {
+			return PixelType.RightBorder
+		}
+	}
+	// Padding
+	var leftBorderWidth, rightBorderWidth, topBorderWidth, bottomBorderWidth int
+	if e.GetBorderLeft().Style != 0 {
+		leftBorderWidth = 1
+	}
+	if e.GetBorderRight().Style != 0 {
+		rightBorderWidth = 1
+	}
+	if e.GetBorderTop().Style != 0 {
+		topBorderWidth = 1
+	}
+	if e.GetBorderBottom().Style != 0 {
+		bottomBorderWidth = 1
+	}
+	if y > e.GetMarginTop()+topBorderWidth &&
+		y < e.GetMarginTop()+topBorderWidth+e.GetPaddingTop() {
+		if e.GetPaddingTop() > 0 {
+			return PixelType.Padding
+		}
+	}
+	if x > e.GetMarginTop()+e.GetWidth()-bottomBorderWidth-e.GetPaddingBottom() &&
+		x <= e.GetMarginTop()+e.GetWidth()-bottomBorderWidth {
+		if e.GetPaddingBottom() > 0 {
+			return PixelType.Padding
+		}
+	}
+	if x > e.GetMarginLeft()+leftBorderWidth &&
+		x <= e.GetMarginLeft()+leftBorderWidth+e.GetPaddingLeft() {
+		if e.GetPaddingLeft() > 0 {
+			return PixelType.Padding
+		}
+	}
+	if x > e.GetMarginRight()+e.GetWidth()-rightBorderWidth-e.GetPaddingRight() &&
+		x <= e.GetMarginRight()+e.GetWidth()-rightBorderWidth {
+		if e.GetPaddingRight() > 0 {
+			return PixelType.Padding
+		}
+	}
+	// Content
+	return PixelType.Content
+}
+
 type Element struct {
 	container    ContainsElements
+	elements     []IsElement
 	eventHandler func(event tcell.Event)
 	screen       *Screen
 	y            int
@@ -34,12 +198,49 @@ type Element struct {
 
 // IsElement interface
 
-func (e *Element) Draw() {}
+func (e *Element) Draw() {
+	if e.GetScreen() == nil {
+		panic("Select's Screen is not defined")
+	}
+	borderStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
+
+	type pixel struct {
+		x         int
+		y         int
+		pixelType PixelTypeType
+	}
+	ch := make(chan pixel)
+	getRune := func(e *Element, x int, y int) {
+		ch <- pixel{
+			x:         x,
+			y:         y,
+			pixelType: getPositionPixelType(e, x, y),
+		}
+	}
+	for y := 1; y <= e.GetOuterHeight(); y++ {
+		for x := 1; x <= e.GetOuterWidth(); x++ {
+			go getRune(e, x, y)
+		}
+	}
+	for i := 0; i < e.GetOuterHeight()*e.GetOuterWidth(); i++ {
+		p := <-ch
+		e.GetScreen().Screen.SetContent(
+			p.x,
+			p.y,
+			PixelRuneMap[p.pixelType],
+			nil,
+			borderStyle,
+		)
+	}
+}
 
 // HandlesEvents interface
 
 func (e *Element) HandleEvent(event tcell.Event) {
-	e.GetEventHandler()(event)
+	for _, e := range e.elements {
+		e.HandleEvent(event)
+	}
+	e.eventHandler(event)
 }
 
 func (e *Element) SetEventHandler(handler func(event tcell.Event)) {
@@ -365,6 +566,24 @@ func (e *Element) SetBorder(
 	e.SetBorderRight(borderTop.Style, borderTop.Color)
 	e.SetBorderBottom(borderTop.Style, borderTop.Color)
 	e.SetBorderLeft(borderTop.Style, borderTop.Color)
+}
+
+// ContainsElements interface
+
+func (e *Element) AddElement(el IsElement) {
+	e.elements = append(e.elements, el)
+	el.setContainer(e)
+	el.setScreen(e.GetScreen())
+}
+
+func (e *Element) GetElements() []IsElement {
+	return e.elements
+}
+
+func (e *Element) DrawChildren() {
+	for _, el := range e.elements {
+		el.Draw()
+	}
 }
 
 // Other methods

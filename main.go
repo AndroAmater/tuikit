@@ -14,8 +14,8 @@ func main() {
 	}
 
 	screen.Screen.Clear()
-	window := tuikit.NewWindow()
-	window.SetBorder(
+	e := tuikit.NewElement()
+	e.SetBorder(
 		tuikit.BorderOpts{
 			Style: tuikit.BorderStyle.Single,
 			Color: "red",
@@ -35,21 +35,21 @@ func main() {
 			Color: "red",
 		},
 	)
-	window.SetSize(30, 10)
-	window.SetMargin(2, 2, 2, 2)
-	window.SetPadding(2, 2, 2, 2)
+	e.SetSize(30, 10)
+	e.SetMargin(2, 2, 2, 2)
+	e.SetPadding(2, 2, 2, 2)
 	// panic(
 	// 	fmt.Sprintf(
 	// 		"%v %v %v %v",
-	// 		window.GetOuterWidth(),
-	// 		window.GetOuterHeight(),
-	// 		window.GetWidth(),
-	// 		window.GetHeight(),
+	// 		e.GetOuterWidth(),
+	// 		e.GetOuterHeight(),
+	// 		e.GetWidth(),
+	// 		e.GetHeight(),
 	// 	),
 	// )
-	screen.AddElement(window)
+	screen.AddElement(e)
 	// sel := tuikit.NewSelect([]string{"Choice 1", "Choice 2", "Choice 3"})
-	// window.AddElement(sel)
+	// e.AddElement(sel)
 	screen.Draw()
 
 	<-(*screen.ExitChannel)
