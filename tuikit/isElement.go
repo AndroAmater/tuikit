@@ -1,5 +1,7 @@
 package tuikit
 
+import "github.com/google/uuid"
+
 /*
  * TODO:
  * - Add overflow
@@ -7,6 +9,7 @@ package tuikit
  * - Add content (text)
  * - Add scroll
  * - Add wrap
+ * - Add removing children
  */
 
 type IsElement interface {
@@ -17,5 +20,7 @@ type IsElement interface {
 	HasSize
 	ContainsElements
 	// Draws the element to the screen
+	HasContent
+	GetUUID() uuid.UUID
 	Draw()
 }

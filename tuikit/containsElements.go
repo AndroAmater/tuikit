@@ -85,4 +85,6 @@ type ContainsElements interface {
 	GetXNonGrowableChildren() []IsElement
 	// Gets ther container's Y non-growable children
 	GetYNonGrowableChildren() []IsElement
+	// Removes all element's children
+	RemoveAllChildren()
 }

@@ -2,6 +2,7 @@ package tuikit
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
 )
 
 type PixelTypeType int
@@ -47,8 +48,8 @@ var PixelType = struct {
 }
 
 var PixelRuneMap = map[PixelTypeType]rune{
-	PixelType.Margin:            'M',
-	PixelType.Padding:           'P',
+	PixelType.Margin:            ' ',
+	PixelType.Padding:           ' ',
 	PixelType.TopLeftBorder:     '┌',
 	PixelType.TopBorder:         '─',
 	PixelType.TopRightBorder:    '┐',
@@ -57,10 +58,11 @@ var PixelRuneMap = map[PixelTypeType]rune{
 	PixelType.BottomLeftBorder:  '└',
 	PixelType.BottomBorder:      '─',
 	PixelType.BottomRightBorder: '┘',
-	PixelType.Content:           'C',
+	PixelType.Content:           ' ',
 }
 
 type Element struct {
+	UUID         uuid.UUID
 	container    IsElement
 	elements     []IsElement
 	eventHandler func(event tcell.Event)
@@ -92,6 +94,7 @@ type Element struct {
 	contentDirection ContainerDirectionType
 	contentAlign     ContainerAlignType
 	contentJustify   ContainerJustifyType
+	content          string
 }
 
 func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
@@ -200,7 +203,28 @@ func getPositionPixelType(e *Element, x int, y int) PixelTypeType {
 	return PixelType.Content
 }
 
+func getPixel(e *Element, p PixelTypeType, x int, y int) rune {
+	if p == PixelType.Content {
+		topBorderWidth, _, _, rightBorderWidth := e.GetBorderWidth()
+		contentXPos := x - e.GetMarginLeft() - e.GetPaddingLeft() - rightBorderWidth
+		contentYPos := y - e.GetMarginTop() - e.GetPaddingTop() - topBorderWidth
+		contentPos := contentXPos + ((contentYPos - 1) * e.GetInnerWidth())
+		if len(e.GetContent()) < contentPos {
+			return PixelRuneMap[p]
+		}
+		return rune(e.GetContent()[contentPos-1])
+	}
+	return PixelRuneMap[p]
+}
+
 // IsElement interface
+
+func (e *Element) GetUUID() uuid.UUID {
+	if e.UUID == uuid.Nil {
+		e.UUID = uuid.New()
+	}
+	return e.UUID
+}
 
 func (e *Element) Draw() {
 	if e.GetScreen() == nil {
@@ -231,7 +255,7 @@ func (e *Element) Draw() {
 		e.GetScreen().Screen.SetContent(
 			p.x+e.GetAbsoluteX(),
 			p.y+e.GetAbsoluteY(),
-			PixelRuneMap[p.pixelType],
+			getPixel(e, p.pixelType, p.x, p.y),
 			nil,
 			borderStyle,
 		)
@@ -285,7 +309,7 @@ func (e *Element) GetAbsoluteX() int {
 	offset := 0
 	if e.GetContainer().GetContentDirection() == ContainerDirection.Row {
 		for _, child := range e.GetContainer().GetChildren() {
-			if child == e {
+			if child.GetUUID() == e.GetUUID() {
 				break
 			}
 			offset += child.GetOuterWidth()
@@ -308,7 +332,7 @@ func (e *Element) GetAbsoluteY() int {
 	offset := 0
 	if e.GetContainer().GetContentDirection() == ContainerDirection.Column {
 		for _, child := range e.GetContainer().GetChildren() {
-			if child == e {
+			if child.GetUUID() == e.GetUUID() {
 				break
 			}
 			offset += child.GetOuterHeight()
@@ -425,13 +449,13 @@ func (e *Element) GetHeight() int {
 			if e.GetContainer().GetContentDirection() == ContainerDirection.Column {
 				reservedHeight := 0
 				for _, child := range e.GetContainer().GetYNonGrowableChildren() {
-					if child == e {
+					if child.GetUUID() == e.GetUUID() {
 						continue
 					}
 					reservedHeight += child.GetOuterHeight()
 				}
 				for _, child := range e.GetContainer().GetYGrowableChildren() {
-					if child == e {
+					if child.GetUUID() == e.GetUUID() {
 						continue
 					}
 					reservedHeight += child.GetMarginTop()
@@ -784,11 +808,26 @@ func (e *Element) GetYNonGrowableChildren() []IsElement {
 	return growable
 }
 
+func (e *Element) RemoveAllChildren() {
+	e.elements = []IsElement{}
+}
+
+// HasContent interface
+
+func (e *Element) GetContent() string {
+	return e.content
+}
+
+func (e *Element) SetContent(content string) {
+	e.content = content
+}
+
 // Other methods
 
 func NewElement() *Element {
 	return &Element{
-		container: nil,
+		UUID:         uuid.New(),
+		eventHandler: func(event tcell.Event) {},
 	}
 }
 
