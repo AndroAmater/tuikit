@@ -1,5 +1,14 @@
 package tuikit
 
+/*
+ * TODO:
+ * - Add overflow
+ * - Add position
+ * - Add content (text)
+ * - Add scroll
+ * - Add wrap
+ */
+
 type IsElement interface {
 	HandlesEvents
 	HasContainer
